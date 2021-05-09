@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, Alert } from 'react-native';
-
-import NumberContainer from '../components/NumberContainer';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, StyleSheet, Text, View, FlatList } from 'react-native';
+import BodyText from '../components/BodyText';
 import Card from '../components/Card';
+import MainButton from '../components/MainButton';
+import NumberContainer from '../components/NumberContainer';
+import DefaultStyles from '../constants/default-styles';
+
 
 const generateRandomBetween = (min, max, exclude) => {
     min = Math.ceil(min);
@@ -15,11 +19,16 @@ const generateRandomBetween = (min, max, exclude) => {
     }
 };
 
+const renderListItem = (listLength, itemData) => (
+    <View style={styles.listItem}>
+        <BodyText>Round number: #{listLength - itemData.index} </BodyText>
+        <Text>Guess: {itemData.item}</Text>
+    </View>)
+
 const GameScreen = props => {
-    const [currentGuess, setCurrentGuess] = useState(
-        generateRandomBetween(1, 100, props.userChoice)
-    );
-    const [rounds, setRounds] = useState(0);
+    const initialGuess = generateRandomBetween(1, 100, props.userChoice);
+    const [currentGuess, setCurrentGuess] = useState(initialGuess);
+    const [pastGuesses, setPastGuesses] = useState([initialGuess.toString()]);
     const currentLow = useRef(1);
     const currentHigh = useRef(100);
 
@@ -27,7 +36,7 @@ const GameScreen = props => {
 
     useEffect(() => {
         if (currentGuess === userChoice) {
-            onGameOver(rounds);
+            onGameOver(pastGuesses.length);
         }
     }, [currentGuess, userChoice, onGameOver]);
 
@@ -44,7 +53,7 @@ const GameScreen = props => {
         if (direction === 'lower') {
             currentHigh.current = currentGuess;
         } else {
-            currentLow.current = currentGuess;
+            currentLow.current = currentGuess + 1;
         }
         const nextNumber = generateRandomBetween(
             currentLow.current,
@@ -52,20 +61,33 @@ const GameScreen = props => {
             currentGuess
         );
         setCurrentGuess(nextNumber);
-        setRounds(curRounds => curRounds + 1);
+        // setRounds(curRounds => curRounds + 1);
+        setPastGuesses(curPastGuesses => [nextNumber.toString(), ...curPastGuesses]);
     };
 
     return (
         <View style={styles.screen}>
-            <Text>Your phone guess</Text>
+            <Text style={DefaultStyles.bodyText}>Your phone guess</Text>
             <NumberContainer>{currentGuess}</NumberContainer>
             <Card style={styles.buttonContainer}>
-                <Button title="LOWER" onPress={nextGuessHandler.bind(this, 'lower')} />
-                <Button
-                    title="GREATER"
-                    onPress={nextGuessHandler.bind(this, 'greater')}
-                />
+                <MainButton onPress={nextGuessHandler.bind(this, 'lower')}>
+                    <Ionicons name='md-remove' size={24} color='white'></Ionicons>
+                </MainButton>
+                <MainButton onPress={nextGuessHandler.bind(this, 'greater')}>
+                    <Ionicons name='md-add' size={24} color='white'></Ionicons>
+                </MainButton>
             </Card>
+            <View style={styles.listContainer}>
+                {/* <ScrollView contentContainerStyle={styles.list}>
+                    {pastGuesses.map((guess, index) => renderListItem(guess, pastGuesses.length - index))}
+                </ScrollView> */}
+                <FlatList
+                    contentContainerStyle={styles.list}
+                    keyExtractor={(item) => item}
+                    data={pastGuesses}
+                    renderItem={renderListItem.bind(this, pastGuesses.length)}>
+                </FlatList>
+            </View>
         </View>
     );
 };
@@ -80,8 +102,27 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-around',
         marginTop: 20,
-        width: 300,
-        maxWidth: '80%'
+        width: 400,
+        maxWidth: '90%'
+    },
+    listItem: {
+        borderColor: '#ccc',
+        borderWidth: 1,
+        marginVertical: 10,
+        padding: 15,
+        backgroundColor: 'white',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '70%'
+    },
+    listContainer: {
+        flexGrow: 1,
+        flex: 1,
+        width: '80%',
+    },
+    list: {
+        alignItems: 'center',
+        justifyContent: 'flex-end'
     }
 });
 
